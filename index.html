@@ -369,8 +369,9 @@
                     if (entry) {
                         const barWidth = Math.min(100, (entry.hours / 10) * 100);
                         const isSelected = user === currentUser;
+                        // Removed 'ring-1 ring-white' and 'shadow-sm' for a cleaner look
                         indicatorsHtml += `
-                            <div class="${DOT_COLORS[user]} ${isSelected ? 'ring-1 ring-white shadow-sm' : 'opacity-80'} text-white text-[9px] px-1.5 py-0.5 rounded flex justify-between items-center mb-0.5" style="width: ${Math.max(25, barWidth)}%">
+                            <div class="${DOT_COLORS[user]} ${isSelected ? 'opacity-100' : 'opacity-80'} text-white text-[9px] px-1.5 py-0.5 rounded flex justify-between items-center mb-0.5" style="width: ${Math.max(25, barWidth)}%">
                                 <span>${user.charAt(0)}</span><span>${entry.hours}h</span>
                             </div>`;
                     }
@@ -398,32 +399,28 @@
             document.getElementById('statsMonthTitle').innerText = `${MONTH_NAMES[month]} ${year} Statistics`;
             
             let userTotals = {};
-            let userLogDays = {}; 
             
             USERS.forEach(user => {
                 let uSum = 0;
-                let logCount = 0;
                 for (const [key, val] of Object.entries(appData[user])) {
                     const d = new Date(key);
                     if (d.getMonth() === month && d.getFullYear() === year) {
                         const hrs = parseFloat(val.hours);
                         uSum += hrs;
-                        if (hrs > 0) logCount++;
                     }
                 }
                 userTotals[user] = uSum;
-                userLogDays[user] = logCount;
             });
 
             const avgGrid = document.getElementById('personAvgGrid');
             avgGrid.innerHTML = '';
             USERS.forEach(user => {
-                const avg = userLogDays[user] > 0 ? (userTotals[user] / userLogDays[user]).toFixed(1) : '0';
+                const avg = (userTotals[user] / daysInMonth).toFixed(1);
                 avgGrid.innerHTML += `
                     <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl border-l-4 ${user === 'Mohammad' ? 'border-l-blue-500' : (user === 'Fadwa' ? 'border-l-purple-500' : (user === 'Alia' ? 'border-l-pink-500' : 'border-l-emerald-500'))}">
                         <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">${user}'s Average</h3>
                         <div class="text-3xl font-bold text-white">${avg}h</div>
-                        <div class="text-[10px] text-slate-500 mt-1">Per active day (${userLogDays[user]} logged)</div>
+                        <div class="text-[10px] text-slate-500 mt-1">Daily Average (across ${daysInMonth} days)</div>
                     </div>
                 `;
             });
