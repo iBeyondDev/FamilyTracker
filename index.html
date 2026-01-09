@@ -7,355 +7,310 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js" type="module"></script>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f172a; /* Dark background */
+            background-color: #0f172a;
             color: #f1f5f9;
         }
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 4px;
-        }
-        .calendar-day {
-            min-height: 100px;
-            transition: all 0.2s;
-        }
-        .calendar-day:hover:not(.empty) {
-            background-color: #1e293b;
-            border-color: #475569;
-            z-index: 10;
-        }
-        /* Custom scrollbar */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .calendar-day { min-height: 100px; transition: all 0.2s; position: relative; }
+        .calendar-day:hover:not(.empty) { background-color: #1e293b; border-color: #475569; z-index: 10; }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1e293b; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
-        
         .fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .user-card.active {
-            border: 2px solid #3b82f6;
-            background-color: #1e293b;
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
-        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .user-card.active { border: 2px solid #3b82f6; background-color: #1e293b; box-shadow: 0 0 15px rgba(59, 130, 246, 0.2); }
+        .nav-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .nav-btn.active {
-            background-color: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden text-slate-100">
 
-    <!-- Header -->
     <header class="bg-slate-800 shadow-md z-20 shrink-0 border-b border-slate-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-blue-600 text-white p-2 rounded-lg shadow-lg shadow-blue-900/50">
-                    <i class="fa-solid fa-clock fa-lg"></i>
+                <div class="bg-blue-600 text-white p-2 rounded-lg shadow-lg">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
                 </div>
                 <h1 class="text-xl font-bold text-slate-100">Family Tracker <span class="text-blue-500">2026</span></h1>
             </div>
 
-            <!-- Page Switcher -->
             <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-700">
-                <button id="btnCalendarView" onclick="switchPage('calendar')" class="nav-btn active px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-transparent">
-                    <i class="fa-solid fa-calendar-days"></i> Calendar
+                <button id="btnCalendarView" onclick="switchPage('calendar')" class="nav-btn active px-4 py-1.5 rounded-lg text-sm font-medium transition-all">
+                    <i class="fa-solid fa-calendar-days mr-1"></i> Calendar
                 </button>
-                <button id="btnStatsView" onclick="switchPage('stats')" class="nav-btn px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-transparent text-slate-400 hover:text-slate-200">
-                    <i class="fa-solid fa-chart-pie"></i> Stats
+                <button id="btnStatsView" onclick="switchPage('stats')" class="nav-btn px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400">
+                    <i class="fa-solid fa-chart-line mr-1"></i> Stats
                 </button>
-                <button id="btnConsistencyView" onclick="switchPage('consistency')" class="nav-btn px-4 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 border border-transparent text-slate-400 hover:text-slate-200">
-                    <i class="fa-solid fa-fire"></i> Consistency
+                <button id="btnConsistencyView" onclick="switchPage('consistency')" class="nav-btn px-4 py-1.5 rounded-lg text-sm font-medium transition-all text-slate-400">
+                    <i class="fa-solid fa-fire mr-1"></i> Consistency
                 </button>
             </div>
 
             <div class="flex gap-2">
-                <button onclick="exportData()" class="text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-md transition flex items-center gap-2 border border-slate-600">
-                    <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Backup</span>
-                </button>
-                <label class="text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-2 rounded-md transition flex items-center gap-2 cursor-pointer border border-slate-600">
-                    <i class="fa-solid fa-upload"></i> <span class="hidden sm:inline">Restore</span>
-                    <input type="file" id="importFile" class="hidden" onchange="importData(this)">
-                </label>
+                <div id="syncStatus" class="text-xs flex items-center gap-2 text-slate-400 bg-slate-900/50 px-3 py-1.5 rounded-full border border-slate-700">
+                    <div class="w-2 h-2 rounded-full bg-yellow-500" id="statusDot"></div>
+                    <span id="statusText">Connecting...</span>
+                </div>
+                <div class="flex border border-slate-600 rounded-md overflow-hidden">
+                    <button onclick="exportData()" title="Backup to File" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 transition">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                    <label class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 transition cursor-pointer border-l border-slate-600">
+                        <i class="fa-solid fa-upload"></i>
+                        <input type="file" id="importInput" class="hidden" accept=".json" onchange="importData(this)">
+                    </label>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex-1 overflow-auto bg-slate-900 p-4 sm:p-6">
+        <!-- Calendar Page -->
         <div id="calendarPage" class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Column: Calendar -->
             <div class="lg:col-span-2 space-y-6">
-                <!-- Month Navigation -->
-                <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-4 flex justify-between items-center sticky top-0 z-10">
-                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-700 rounded-full transition w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white">
-                        <i class="fa-solid fa-chevron-left"></i>
-                    </button>
-                    <h2 class="text-xl font-bold w-48 text-center text-white" id="currentMonthDisplay">Month 2026</h2>
-                    <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-700 rounded-full transition w-10 h-10 flex items-center justify-center text-slate-400 hover:text-white">
-                        <i class="fa-solid fa-chevron-right"></i>
-                    </button>
+                <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex justify-between items-center sticky top-0 z-10">
+                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-700 rounded-full text-slate-400"><i class="fa-solid fa-chevron-left"></i></button>
+                    <h2 class="text-xl font-bold w-48 text-center" id="currentMonthDisplay">Loading...</h2>
+                    <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-700 rounded-full text-slate-400"><i class="fa-solid fa-chevron-right"></i></button>
                 </div>
 
-                <!-- Calendar Grid -->
-                <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-4 fade-in">
-                    <div class="grid grid-cols-7 gap-4 mb-2 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 fade-in">
+                    <div class="grid grid-cols-7 gap-4 mb-2 text-center text-xs font-semibold text-slate-500 uppercase">
                         <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
                     </div>
-                    <div id="calendarGrid" class="calendar-grid bg-slate-900/50 border border-slate-700/50 rounded-lg overflow-hidden p-1"></div>
+                    <div id="calendarGrid" class="calendar-grid bg-slate-900/50 border border-slate-700/50 rounded-lg p-1"></div>
                 </div>
-
+                
                 <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
                     <div>
-                        <h3 class="font-semibold text-slate-200">Today's Date</h3>
-                        <p class="text-sm text-slate-400" id="todayDateDisplay"></p>
+                        <h3 class="font-semibold text-slate-200">Logged in as</h3>
+                        <p class="text-sm text-blue-400 font-bold" id="loggedUserDisplay"></p>
                     </div>
-                    <button onclick="openLogModal(new Date())" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg shadow-lg shadow-blue-900/20 transition font-medium border border-blue-500">
-                        Log Hours for <span id="btnUserName">Mohammad</span>
+                    <button onclick="openLogModal(new Date().toISOString().split('T')[0])" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg shadow-lg font-medium border border-blue-500">
+                        Log Hours
                     </button>
                 </div>
             </div>
 
-            <!-- Right Column: Family Dashboard -->
             <div class="space-y-6">
-                <div class="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6 flex flex-col h-full">
-                    <h3 class="font-bold text-lg mb-4 text-slate-100 flex items-center gap-2">
+                <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 flex flex-col h-full">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
                         <i class="fa-solid fa-users text-slate-400"></i> Family Dashboard
                     </h3>
                     <div id="usersList" class="space-y-3 flex-1 overflow-y-auto no-scrollbar"></div>
                     <div class="mt-6 pt-6 border-t border-slate-700">
-                         <h4 class="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">Recent Log</h4>
+                         <h4 class="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Your Recent Logs</h4>
                          <div id="recentEntries" class="space-y-2 text-sm"></div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Statistics Page -->
+        <!-- Stats Page -->
         <div id="statsPage" class="max-w-7xl mx-auto hidden fade-in space-y-6">
-            <h2 class="text-2xl font-bold text-white mb-2" id="statsMonthTitle">Month Statistics</h2>
-            
-            <div id="personAvgGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <div class="lg:col-span-1 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col justify-center">
-                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Top Monthly Contributor</h3>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <h2 class="text-2xl font-bold text-white" id="statsMonthTitle">Month Statistics</h2>
+                <div id="topContributorBox" class="bg-blue-600/20 border border-blue-500/50 px-4 py-2 rounded-xl flex items-center gap-3">
+                    <i class="fa-solid fa-crown text-yellow-400"></i>
                     <div>
-                        <div class="text-3xl font-bold text-emerald-500" id="statTopPerformer">-</div>
-                        <div class="text-xs text-slate-500 mt-1">Highest total hours this month</div>
-                    </div>
-                </div>
-
-                <div class="lg:col-span-3 bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-                    <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">Daily Work Hours Distribution</h3>
-                    <div class="h-64">
-                        <canvas id="statsChart"></canvas>
+                        <p class="text-[10px] uppercase font-bold text-blue-400 tracking-wider">Monthly Top</p>
+                        <p id="topContributorName" class="font-black text-white">-</p>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl">
-                <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-6">Total Monthly Hours Rankings</h3>
-                <div id="statsLeaderboard" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            <div id="personAvgGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+            
+            <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-bold text-slate-300">Daily Activity Graph</h3>
+                    <div class="flex gap-4 text-xs">
+                        <span class="flex items-center gap-1.5"><div class="w-3 h-3 bg-blue-500 rounded-full"></div> M</span>
+                        <span class="flex items-center gap-1.5"><div class="w-3 h-3 bg-purple-500 rounded-full"></div> F</span>
+                        <span class="flex items-center gap-1.5"><div class="w-3 h-3 bg-pink-500 rounded-full"></div> A</span>
+                        <span class="flex items-center gap-1.5"><div class="w-3 h-3 bg-emerald-500 rounded-full"></div> T</span>
+                    </div>
+                </div>
+                <div class="h-80 w-full">
+                    <canvas id="statsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                    <h3 class="font-bold mb-4 text-slate-400 uppercase text-xs tracking-widest" id="monthlySumTitle">Monthly Summary</h3>
+                    <div id="monthlyTotalsList" class="space-y-4"></div>
+                </div>
+                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                    <h3 class="font-bold mb-4 text-slate-400 uppercase text-xs tracking-widest">Monthly Rank</h3>
+                    <div id="monthlyRankList" class="space-y-4"></div>
+                </div>
             </div>
         </div>
 
         <!-- Consistency Page -->
         <div id="consistencyPage" class="max-w-7xl mx-auto hidden fade-in space-y-6">
-            <div class="flex justify-between items-end">
-                <div>
-                    <h2 class="text-2xl font-bold text-white">Consistency Metrics</h2>
-                    <p class="text-slate-400 text-sm mt-1">A day is "Consistent" if logged hours are <span class="text-blue-400 font-bold">≥ 2h</span>.</p>
-                </div>
-            </div>
-
-            <div id="consistencyGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Populated by JS -->
-            </div>
+            <h2 class="text-2xl font-bold text-white">Consistency (≥ 2h)</h2>
+            <div id="consistencyGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
         </div>
     </main>
 
-    <!-- Modal for Logging Hours -->
+    <!-- Modal -->
     <div id="logModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
-        <div class="bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform scale-95 transition-transform duration-300 border border-slate-700" id="logModalContent">
+        <div class="bg-slate-800 rounded-2xl w-full max-w-md mx-4 border border-slate-700 overflow-hidden">
             <div class="p-6 border-b border-slate-700 flex justify-between items-center">
-                <div>
-                    <h3 class="text-xl font-bold text-white">Log Work Hours</h3>
-                    <p class="text-sm text-blue-400 font-medium mt-1">For: <span id="modalUserName">Mohammad</span></p>
-                </div>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-700 transition">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <h3 class="text-xl font-bold text-white">Log Hours for <span id="modalUserName" class="text-blue-400"></span></h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="p-6 space-y-5">
+                <div class="text-sm text-slate-400 font-medium" id="modalDateDisplay"></div>
+                
                 <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-1">Date</label>
-                    <div class="text-lg font-semibold text-slate-200" id="modalDateDisplay"></div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-2">Hours Worked</label>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Hours Worked</label>
                     <div class="flex gap-2 mb-3">
-                        <button onclick="setHours(4)" class="flex-1 py-2 border border-slate-600 bg-slate-700 rounded-lg hover:bg-blue-600/20 text-slate-200 transition">4h</button>
-                        <button onclick="setHours(8)" class="flex-1 py-2 border border-slate-600 bg-slate-700 rounded-lg hover:bg-blue-600/20 text-slate-200 transition">8h</button>
-                        <button onclick="setHours(10)" class="flex-1 py-2 border border-slate-600 bg-slate-700 rounded-lg hover:bg-blue-600/20 text-slate-200 transition">10h</button>
+                        <button onclick="setHours(4)" class="flex-1 py-1.5 border border-slate-600 bg-slate-700 rounded-lg hover:bg-blue-600/20 text-sm">4h</button>
+                        <button onclick="setHours(8)" class="flex-1 py-1.5 border border-slate-600 bg-slate-700 rounded-lg hover:bg-blue-600/20 text-sm">8h</button>
+                        <button onclick="setHours(10)" class="flex-1 py-1.5 border border-slate-600 bg-slate-700 rounded-lg hover:bg-blue-600/20 text-sm">10h</button>
                     </div>
-                    <div class="relative">
-                        <input type="number" id="hoursInput" step="0.5" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 outline-none text-white" placeholder="Custom hours...">
-                    </div>
+                    <input type="number" id="hoursInput" step="0.5" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter hours...">
                 </div>
+
                 <div>
-                    <label class="block text-sm font-medium text-slate-400 mb-2">Notes</label>
-                    <textarea id="notesInput" rows="2" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none text-white" placeholder="Optional notes..."></textarea>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Notes</label>
+                    <textarea id="notesInput" rows="2" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="What did you do today?"></textarea>
                 </div>
             </div>
             <div class="p-6 border-t border-slate-700 flex justify-end gap-3">
                 <button onclick="deleteEntry()" id="deleteBtn" class="px-4 py-2 text-red-400 hover:bg-red-900/20 rounded-lg font-medium hidden">Delete</button>
-                <div class="flex gap-3">
-                    <button onclick="closeModal()" class="px-4 py-2 text-slate-300 hover:bg-slate-700 rounded-lg font-medium">Cancel</button>
-                    <button onclick="saveEntry()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium">Save Entry</button>
-                </div>
+                <button onclick="saveEntry()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium">Save Entry</button>
             </div>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-6 right-6 bg-slate-700 border border-slate-600 text-white px-6 py-3 rounded-lg shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
-        <i class="fa-solid fa-circle-check text-green-400"></i>
-        <span id="toastMessage">Saved successfully</span>
-    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    <script>
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'family-tracker-2026';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
         const USERS = ['Mohammad', 'Fadwa', 'Alia', 'Tasneem'];
-        const DOT_COLORS = { 'Mohammad': 'bg-blue-500', 'Fadwa': 'bg-purple-500', 'Alia': 'bg-pink-500', 'Tasneem': 'bg-emerald-500' };
+        const USER_COLORS = { 'Mohammad': 'bg-blue-500', 'Fadwa': 'bg-purple-500', 'Alia': 'bg-pink-500', 'Tasneem': 'bg-emerald-500' };
         const CHART_COLORS = { 'Mohammad': '#3b82f6', 'Fadwa': '#a855f7', 'Alia': '#ec4899', 'Tasneem': '#10b981' };
-        const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         
-        let currentUser = USERS[0];
-        let currentDate = new Date(); 
+        let appData = {}; 
+        let currentUser = localStorage.getItem('selectedUserIdentity') || USERS[0];
+        let currentDate = new Date();
         let selectedDateForModal = null;
-        let appData = {};
+        let authUser = null;
         let statsChartInstance = null;
 
-        function init() {
-            // Load app data
-            const saved = localStorage.getItem('familyTimeTracker');
-            if (saved) {
-                appData = JSON.parse(saved);
-            } else {
-                USERS.forEach(user => appData[user] = {});
-            }
-            USERS.forEach(user => { if (!appData[user]) appData[user] = {}; });
-
-            // Load saved user identity
-            const savedUser = localStorage.getItem('selectedUserIdentity');
-            if (savedUser && USERS.includes(savedUser)) {
-                currentUser = savedUser;
-            }
-
-            renderCalendar();
-            renderUsersList();
-            updateTodayDisplay();
-        }
-
-        function switchPage(page) {
-            const pages = ['calendar', 'stats', 'consistency'];
-            pages.forEach(p => {
-                const btn = document.getElementById(`btn${p.charAt(0).toUpperCase() + p.slice(1)}View`);
-                const pageEl = document.getElementById(`${p}Page`);
-                if (p === page) {
-                    btn.classList.add('active', 'text-white');
-                    btn.classList.remove('text-slate-400');
-                    pageEl.classList.remove('hidden');
+        async function start() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
-                    btn.classList.remove('active', 'text-white');
-                    btn.classList.add('text-slate-400');
-                    pageEl.classList.add('hidden');
+                    await signInAnonymously(auth);
                 }
+            } catch (err) {
+                document.getElementById('statusText').innerText = "Auth Error";
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            authUser = user;
+            if (user) {
+                document.getElementById('statusText').innerText = "Synced";
+                document.getElementById('statusDot').classList.replace('bg-yellow-500', 'bg-green-500');
+                listenToData();
+            }
+        });
+
+        function listenToData() {
+            const dataPath = collection(db, 'artifacts', appId, 'public', 'data', 'workLogs');
+            onSnapshot(dataPath, (snapshot) => {
+                USERS.forEach(u => appData[u] = {});
+                snapshot.forEach(doc => {
+                    const [user, date] = doc.id.split('_');
+                    if (USERS.includes(user)) appData[user][date] = doc.data();
+                });
+                renderUI();
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
             });
-
-            if (page === 'stats') updateStats();
-            if (page === 'consistency') updateConsistency();
-            if (page === 'calendar') renderCalendar();
         }
 
-        function selectUser(user) {
+        window.switchPage = (page) => {
+            ['calendar', 'stats', 'consistency'].forEach(p => {
+                document.getElementById(`${p}Page`).classList.toggle('hidden', p !== page);
+                document.getElementById(`btn${p.charAt(0).toUpperCase() + p.slice(1)}View`).classList.toggle('active', p === page);
+            });
+            if(page === 'stats') renderStats();
+            if(page === 'consistency') renderConsistency();
+        };
+
+        window.selectUser = (user) => {
             currentUser = user;
-            // Save selection to remember on next reload
             localStorage.setItem('selectedUserIdentity', user);
-            renderUsersList();
+            renderUI();
+        };
+
+        window.changeMonth = (delta) => {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderUI();
+        };
+
+        window.setHours = (h) => document.getElementById('hoursInput').value = h;
+
+        function renderUI() {
+            document.getElementById('loggedUserDisplay').innerText = currentUser;
+            renderUsers();
             renderCalendar();
+            updateRecentActivity();
+            if (!document.getElementById('statsPage').classList.contains('hidden')) renderStats();
+            if (!document.getElementById('consistencyPage').classList.contains('hidden')) renderConsistency();
         }
 
-        function renderUsersList() {
-            const listContainer = document.getElementById('usersList');
-            document.getElementById('btnUserName').innerText = currentUser;
-            listContainer.innerHTML = '';
-
-            const currentYear = currentDate.getFullYear();
-            const currentMonth = currentDate.getMonth();
-            const goal = 160;
-
+        function renderUsers() {
+            const container = document.getElementById('usersList');
+            container.innerHTML = '';
+            const month = currentDate.getMonth();
+            const year = currentDate.getFullYear();
+            
             USERS.forEach(user => {
-                let mTotal = 0;
-                for (const [key, val] of Object.entries(appData[user])) {
-                    const d = new Date(key);
-                    if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
-                        mTotal += parseFloat(val.hours);
-                    }
-                }
+                let total = Object.entries(appData[user] || {})
+                    .filter(([date]) => {
+                        const d = new Date(date);
+                        return d.getMonth() === month && d.getFullYear() === year;
+                    })
+                    .reduce((sum, [_, v]) => sum + v.hours, 0);
 
                 const isActive = user === currentUser;
-                const percent = Math.min(100, Math.round((mTotal / goal) * 100));
-                let barColor = user === 'Mohammad' ? "bg-blue-600" : (user === 'Fadwa' ? "bg-purple-600" : (user === 'Alia' ? "bg-pink-600" : "bg-emerald-600"));
-
-                const div = document.createElement('div');
-                div.className = `user-card p-4 rounded-xl cursor-pointer transition-all duration-200 border-2 ${isActive ? 'active border-blue-500' : 'border-transparent bg-slate-800/40'}`;
-                div.onclick = () => selectUser(user);
-                div.innerHTML = `
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center font-bold text-sm">${user.charAt(0)}</span>
-                            <span class="font-bold text-slate-100">${user}</span>
+                const card = document.createElement('div');
+                card.className = `user-card p-4 rounded-xl cursor-pointer transition-all border-2 ${isActive ? 'active border-blue-500' : 'border-transparent bg-slate-800/40'}`;
+                card.onclick = () => selectUser(user);
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full ${USER_COLORS[user]} flex items-center justify-center font-bold text-xs text-white">${user[0]}</div>
+                            <span class="font-bold">${user}</span>
                         </div>
-                        <span class="text-xl font-bold">${mTotal}h</span>
-                    </div>
-                    <div class="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                        <div class="${barColor} h-full" style="width: ${percent}%"></div>
+                        <span class="text-lg font-black">${total}h</span>
                     </div>
                 `;
-                listContainer.appendChild(div);
+                container.appendChild(card);
             });
-            updateRecentActivity();
-        }
-
-        function updateRecentActivity() {
-            const recentContainer = document.getElementById('recentEntries');
-            recentContainer.innerHTML = '';
-            const userEntries = Object.entries(appData[currentUser])
-                .map(([k, v]) => ({ date: k, ...v }))
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 3);
-
-            if (userEntries.length === 0) {
-                recentContainer.innerHTML = `<p class="text-slate-500 italic text-xs">No entries for ${currentUser}.</p>`;
-            } else {
-                userEntries.forEach(entry => {
-                    recentContainer.innerHTML += `
-                        <div class="flex justify-between items-center bg-slate-900/50 p-2 rounded border border-slate-700/50">
-                            <span class="text-slate-400 text-xs">${new Date(entry.date).toLocaleDateString('en-US', {month:'short', day:'numeric'})}</span>
-                            <span class="text-white font-medium text-xs">${entry.hours}h</span>
-                        </div>
-                    `;
-                });
-            }
         }
 
         function renderCalendar() {
@@ -363,116 +318,162 @@
             grid.innerHTML = '';
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
-            document.getElementById('currentMonthDisplay').innerText = `${MONTH_NAMES[month]} ${year}`;
+            const monthName = new Intl.DateTimeFormat('en-US', {month:'long'}).format(currentDate);
+            document.getElementById('currentMonthDisplay').innerText = `${monthName} ${year}`;
 
-            const firstDay = new Date(year, month, 1);
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const startingDay = firstDay.getDay();
+            const startingDay = new Date(year, month, 1).getDay();
+            const todayKey = new Date().toISOString().split('T')[0];
 
-            for (let i = 0; i < startingDay; i++) {
-                grid.appendChild(document.createElement('div'));
-            }
+            for (let i = 0; i < startingDay; i++) grid.appendChild(document.createElement('div'));
 
             for (let d = 1; d <= daysInMonth; d++) {
-                const dateObj = new Date(year, month, d);
-                const dateKey = formatDateKey(dateObj);
-                const isToday = dateKey === formatDateKey(new Date());
-
-                let indicatorsHtml = '';
-                USERS.forEach(user => {
-                    const entry = appData[user][dateKey];
+                const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const isToday = dateKey === todayKey;
+                const dayEl = document.createElement('div');
+                dayEl.className = `calendar-day rounded-lg p-2 cursor-pointer bg-slate-800 border ${isToday ? 'border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'border-slate-700'} flex flex-col justify-between`;
+                
+                let bars = '';
+                USERS.forEach(u => {
+                    const entry = appData[u]?.[dateKey];
                     if (entry) {
-                        const barWidth = Math.min(100, (entry.hours / 10) * 100);
-                        const isSelected = user === currentUser;
-                        indicatorsHtml += `
-                            <div class="${DOT_COLORS[user]} ${isSelected ? 'opacity-100' : 'opacity-80'} text-white text-[9px] px-1.5 py-0.5 rounded flex justify-between items-center mb-0.5" style="width: ${Math.max(25, barWidth)}%">
-                                <span>${user.charAt(0)}</span><span>${entry.hours}h</span>
+                        bars += `
+                            <div class="h-5 w-full ${USER_COLORS[u]} rounded px-1.5 mb-0.5 opacity-90 flex items-center justify-between overflow-hidden">
+                                <span class="text-[9px] font-bold text-white uppercase">${u[0]}</span>
+                                <span class="text-[9px] font-bold text-white">${entry.hours}h</span>
                             </div>`;
                     }
                 });
 
-                const dayEl = document.createElement('div');
-                dayEl.className = `calendar-day rounded-lg p-2 cursor-pointer flex flex-col justify-between bg-slate-800 border border-slate-700 hover:border-slate-500 ${isToday ? 'ring-2 ring-blue-500 z-10' : ''}`;
                 dayEl.innerHTML = `
-                    <div class="text-xs font-semibold flex justify-between items-center mb-1">
-                        <span class="${isToday ? 'text-blue-400 font-bold' : 'text-slate-500'}">${d}</span>
-                        ${isToday ? '<span class="text-[8px] bg-blue-600 text-white px-1.5 rounded-full uppercase">Today</span>' : ''}
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs ${isToday ? 'text-blue-400 font-bold' : 'text-slate-500'}">${d}</span>
+                        ${isToday ? '<span class="text-[9px] bg-blue-600 text-white px-1 rounded font-bold uppercase tracking-tighter">Today</span>' : ''}
                     </div>
-                    <div class="flex flex-col w-full mt-auto overflow-hidden">${indicatorsHtml}</div>
-                `;
-                dayEl.onclick = () => openLogModal(dateObj);
+                    <div class="mt-auto space-y-0.5">${bars}</div>`;
+                dayEl.onclick = () => openLogModal(dateKey);
                 grid.appendChild(dayEl);
             }
         }
 
-        function updateStats() {
+        window.openLogModal = (dateKey) => {
+            selectedDateForModal = dateKey;
+            const entry = appData[currentUser]?.[dateKey];
+            document.getElementById('modalUserName').innerText = currentUser;
+            document.getElementById('modalDateDisplay').innerText = dateKey;
+            document.getElementById('hoursInput').value = entry ? entry.hours : '';
+            document.getElementById('notesInput').value = entry?.notes || '';
+            document.getElementById('deleteBtn').classList.toggle('hidden', !entry);
+            document.getElementById('logModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('logModal').classList.remove('opacity-0'), 10);
+        };
+
+        window.closeModal = () => {
+            document.getElementById('logModal').classList.add('opacity-0');
+            setTimeout(() => document.getElementById('logModal').classList.add('hidden'), 300);
+        };
+
+        window.saveEntry = async () => {
+            if (!authUser) return;
+            const hours = parseFloat(document.getElementById('hoursInput').value);
+            const notes = document.getElementById('notesInput').value;
+            if (isNaN(hours)) return;
+            const docId = `${currentUser}_${selectedDateForModal}`;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'workLogs', docId);
+            await setDoc(docRef, { hours, notes, timestamp: Date.now() });
+            closeModal();
+        };
+
+        window.deleteEntry = async () => {
+            if (!authUser) return;
+            const docId = `${currentUser}_${selectedDateForModal}`;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'workLogs', docId);
+            await deleteDoc(docRef);
+            closeModal();
+        };
+
+        function renderStats() {
             const month = currentDate.getMonth();
             const year = currentDate.getFullYear();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const monthName = new Intl.DateTimeFormat('en-US', {month:'long'}).format(currentDate);
             
-            document.getElementById('statsMonthTitle').innerText = `${MONTH_NAMES[month]} ${year} Statistics`;
+            document.getElementById('statsMonthTitle').innerText = `${monthName} Statistics`;
+            document.getElementById('monthlySumTitle').innerText = `${monthName} Totals`;
             
-            let userTotals = {};
-            
-            USERS.forEach(user => {
-                let uSum = 0;
-                for (const [key, val] of Object.entries(appData[user])) {
-                    const d = new Date(key);
-                    if (d.getMonth() === month && d.getFullYear() === year) {
-                        const hrs = parseFloat(val.hours);
-                        uSum += hrs;
-                    }
-                }
-                userTotals[user] = uSum;
-            });
-
             const avgGrid = document.getElementById('personAvgGrid');
+            const monthlyTotalsList = document.getElementById('monthlyTotalsList');
+            const monthlyRankList = document.getElementById('monthlyRankList');
+            
             avgGrid.innerHTML = '';
-            USERS.forEach(user => {
-                const avg = (userTotals[user] / daysInMonth).toFixed(1);
-                avgGrid.innerHTML += `
-                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl border-l-4 ${user === 'Mohammad' ? 'border-l-blue-500' : (user === 'Fadwa' ? 'border-l-purple-500' : (user === 'Alia' ? 'border-l-pink-500' : 'border-l-emerald-500'))}">
-                        <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">${user}'s Average</h3>
-                        <div class="text-3xl font-bold text-white">${avg}h</div>
-                        <div class="text-[10px] text-slate-500 mt-1">Daily Average (across ${daysInMonth} days)</div>
-                    </div>
-                `;
-            });
+            monthlyTotalsList.innerHTML = '';
+            monthlyRankList.innerHTML = '';
 
-            const sorted = Object.entries(userTotals).sort((a,b) => b[1] - a[1]);
-            document.getElementById('statTopPerformer').innerText = sorted[0][1] > 0 ? sorted[0][0] : '-';
+            let monthlyTotals = [];
+            let labels = Array.from({length: daysInMonth}, (_, i) => i + 1);
+            let datasets = [];
 
-            const leaderboard = document.getElementById('statsLeaderboard');
-            leaderboard.innerHTML = '';
-            sorted.forEach(([user, hrs], idx) => {
-                leaderboard.innerHTML += `
-                    <div class="bg-slate-900/50 p-4 rounded-xl flex items-center justify-between border border-slate-700">
-                        <div class="flex items-center gap-4">
-                            <span class="text-xl font-bold text-slate-600 italic">#${idx + 1}</span>
-                            <div class="w-10 h-10 rounded-full ${DOT_COLORS[user]} flex items-center justify-center font-bold text-white shadow-lg">${user.charAt(0)}</div>
-                            <span class="font-bold text-slate-200">${user}</span>
-                        </div>
-                        <span class="text-2xl font-black text-white">${hrs}h</span>
-                    </div>
-                `;
-            });
-
-            const labels = Array.from({length: daysInMonth}, (_, i) => i + 1);
-            const datasets = USERS.map(user => {
-                const data = labels.map(day => {
-                    const key = formatDateKey(new Date(year, month, day));
-                    return appData[user][key]?.hours || 0;
+            USERS.forEach(u => {
+                const logs = appData[u] || {};
+                
+                const monthlyLogs = Object.entries(logs).filter(([date]) => {
+                    const d = new Date(date);
+                    return d.getMonth() === month && d.getFullYear() === year;
                 });
-                return {
-                    label: user,
-                    data: data,
-                    borderColor: CHART_COLORS[user],
-                    backgroundColor: CHART_COLORS[user] + '20',
-                    fill: false,
-                    tension: 0.3,
-                    borderWidth: 2,
-                    pointRadius: 1
-                };
+                const monthlyTotal = monthlyLogs.reduce((sum, [_, v]) => sum + v.hours, 0);
+                monthlyTotals.push({ user: u, total: monthlyTotal });
+
+                avgGrid.innerHTML += `
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
+                        <div class="text-xs font-bold text-slate-500 uppercase mb-1">${u} Avg</div>
+                        <div class="text-2xl font-black text-white">${(monthlyTotal / daysInMonth).toFixed(1)}h</div>
+                        <div class="text-[10px] text-slate-500 mt-1">${monthlyTotal}h total this month</div>
+                    </div>
+                `;
+
+                monthlyTotalsList.innerHTML += `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full ${USER_COLORS[u]}"></div>
+                            <span class="text-sm font-medium">${u}</span>
+                        </div>
+                        <span class="font-black text-slate-200">${monthlyTotal}h</span>
+                    </div>
+                `;
+
+                let dailyData = Array(daysInMonth).fill(0);
+                monthlyLogs.forEach(([date, v]) => {
+                    const day = new Date(date).getDate();
+                    dailyData[day - 1] = v.hours;
+                });
+
+                datasets.push({
+                    label: u,
+                    data: dailyData,
+                    borderColor: CHART_COLORS[u],
+                    backgroundColor: CHART_COLORS[u] + '11',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 2
+                });
+            });
+
+            const sortedMonthly = [...monthlyTotals].sort((a,b) => b.total - a.total);
+            const top = sortedMonthly[0];
+            document.getElementById('topContributorName').innerText = top.total > 0 ? `${top.user} (${top.total}h)` : "-";
+            
+            sortedMonthly.forEach((item, idx) => {
+                monthlyRankList.innerHTML += `
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium">#${idx+1} ${item.user}</span>
+                        <div class="flex items-center gap-3">
+                            <div class="w-32 h-2 bg-slate-900 rounded-full overflow-hidden">
+                                <div class="h-full ${USER_COLORS[item.user]}" style="width: ${(item.total / (top.total || 1)) * 100}%"></div>
+                            </div>
+                            <span class="text-xs font-bold">${item.total}h</span>
+                        </div>
+                    </div>
+                `;
             });
 
             const ctx = document.getElementById('statsChart').getContext('2d');
@@ -480,184 +481,124 @@
             statsChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: { labels, datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { color: '#f1f5f9', font: { size: 10 } } } },
-                    scales: {
-                        y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { color: '#64748b' }, title: { display: true, text: 'Hours', color: '#64748b'} },
-                        x: { grid: { display: false }, ticks: { color: '#64748b' }, title: { display: true, text: 'Day of Month', color: '#64748b'} }
-                    }
+                options: { 
+                    maintainAspectRatio: false, 
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { legend: { display: false } }, 
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { color: '#64748b' } }, 
+                        x: { grid: { display: false }, ticks: { color: '#64748b' } } 
+                    } 
                 }
             });
         }
 
-        function updateConsistency() {
+        function renderConsistency() {
             const grid = document.getElementById('consistencyGrid');
             grid.innerHTML = '';
             const month = currentDate.getMonth();
             const year = currentDate.getFullYear();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const minHours = 2;
 
             USERS.forEach(user => {
-                let consistentDays = 0;
+                let consistentCount = 0;
+                let longestStreak = 0;
                 let currentStreak = 0;
-                let maxStreak = 0;
                 let history = [];
 
                 for (let d = 1; d <= daysInMonth; d++) {
-                    const key = formatDateKey(new Date(year, month, d));
-                    const hrs = appData[user][key]?.hours || 0;
-                    const isConsistent = hrs >= minHours;
+                    const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const hrs = appData[user]?.[key]?.hours || 0;
+                    const isOk = hrs >= 2;
                     
-                    history.push(isConsistent);
-                    if (isConsistent) {
-                        consistentDays++;
+                    if (isOk) {
+                        consistentCount++;
                         currentStreak++;
-                        if (currentStreak > maxStreak) maxStreak = currentStreak;
+                        if (currentStreak > longestStreak) longestStreak = currentStreak;
                     } else {
                         currentStreak = 0;
                     }
+                    history.push(isOk);
                 }
 
-                const reliability = Math.round((consistentDays / daysInMonth) * 100);
-                const colorClass = user === 'Mohammad' ? 'text-blue-500' : (user === 'Fadwa' ? 'text-purple-500' : (user === 'Alia' ? 'text-pink-500' : 'text-emerald-500'));
-                const bgClass = user === 'Mohammad' ? 'bg-blue-500' : (user === 'Fadwa' ? 'bg-purple-500' : (user === 'Alia' ? 'bg-pink-500' : 'bg-emerald-500'));
-
                 grid.innerHTML += `
-                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl flex flex-col">
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full ${bgClass} flex items-center justify-center font-bold text-white">${user.charAt(0)}</div>
-                                <h4 class="font-bold text-slate-100">${user}</h4>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-sm text-slate-400 uppercase font-bold tracking-tighter">Reliability</div>
-                                <div class="text-xl font-black ${colorClass}">${reliability}%</div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 mb-6">
-                            <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                                <div class="text-[10px] text-slate-500 uppercase font-bold">Consist. Days</div>
-                                <div class="text-lg font-bold text-white">${consistentDays} / ${daysInMonth}</div>
-                            </div>
-                            <div class="bg-slate-900/50 p-3 rounded-xl border border-slate-700/50">
-                                <div class="text-[10px] text-slate-500 uppercase font-bold">Longest Streak</div>
-                                <div class="text-lg font-bold text-white">${maxStreak} Days</div>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap gap-1.5">
-                            ${history.map((isOk, idx) => `
-                                <div class="w-6 h-6 rounded-md flex items-center justify-center text-[9px] font-bold ${isOk ? bgClass + ' text-white' : 'bg-slate-700 text-slate-500'}" title="Day ${idx+1}">
-                                    ${idx+1}
+                    <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <span class="font-bold text-white">${user}</span>
+                            <div class="flex gap-4">
+                                <div class="text-right">
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Consist. Days</p>
+                                    <p class="text-blue-400 font-black">${consistentCount}</p>
                                 </div>
-                            `).join('')}
+                                <div class="text-right">
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Longest Streak</p>
+                                    <p class="text-orange-400 font-black">${longestStreak}d</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-1">
+                            ${history.map((ok, i) => `<div class="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${ok ? USER_COLORS[user] : 'bg-slate-700/50 text-slate-600'}">${i+1}</div>`).join('')}
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
+                             <span class="text-xs text-slate-400 font-medium">Monthly Consistency Score</span>
+                             <span class="text-sm font-bold text-slate-200">${Math.round(consistentCount/daysInMonth*100)}%</span>
                         </div>
                     </div>
                 `;
             });
         }
 
-        function changeMonth(delta) {
-            currentDate.setMonth(currentDate.getMonth() + delta);
-            renderCalendar();
-            renderUsersList();
-            if(!document.getElementById('statsPage').classList.contains('hidden')) updateStats();
-            if(!document.getElementById('consistencyPage').classList.contains('hidden')) updateConsistency();
-        }
+        function updateRecentActivity() {
+            const container = document.getElementById('recentEntries');
+            container.innerHTML = '';
+            const logs = Object.entries(appData[currentUser] || {})
+                .sort((a,b) => b[1].timestamp - a[1].timestamp)
+                .slice(0, 3);
 
-        function openLogModal(date) {
-            selectedDateForModal = date;
-            const dateKey = formatDateKey(date);
-            const entry = appData[currentUser][dateKey];
-            document.getElementById('modalUserName').innerText = currentUser;
-            document.getElementById('modalDateDisplay').innerText = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-            
-            if (entry) {
-                document.getElementById('hoursInput').value = entry.hours;
-                document.getElementById('notesInput').value = entry.notes || '';
-                document.getElementById('deleteBtn').classList.remove('hidden');
-            } else {
-                document.getElementById('hoursInput').value = '';
-                document.getElementById('notesInput').value = '';
-                document.getElementById('deleteBtn').classList.add('hidden');
+            if (logs.length === 0) {
+                container.innerHTML = '<div class="text-slate-500 italic">No entries found.</div>';
+                return;
             }
-            document.getElementById('logModal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('logModal').classList.remove('opacity-0'), 10);
+
+            logs.forEach(([date, val]) => {
+                container.innerHTML += `
+                    <div class="bg-slate-900/50 p-2 rounded border border-slate-700/50 flex justify-between">
+                        <span>${date}</span>
+                        <span class="font-bold text-blue-400">${val.hours}h</span>
+                    </div>
+                `;
+            });
         }
 
-        function closeModal() {
-            document.getElementById('logModal').classList.add('opacity-0');
-            setTimeout(() => document.getElementById('logModal').classList.add('hidden'), 300);
-        }
-
-        function setHours(h) { document.getElementById('hoursInput').value = h; }
-
-        function saveEntry() {
-            const hours = parseFloat(document.getElementById('hoursInput').value);
-            const notes = document.getElementById('notesInput').value;
-            const dateKey = formatDateKey(selectedDateForModal);
-            if (isNaN(hours) || hours <= 0) { delete appData[currentUser][dateKey]; }
-            else { appData[currentUser][dateKey] = { hours, notes }; }
-            saveToStorage();
-            closeModal();
-            showToast("Hours saved!");
-        }
-
-        function deleteEntry() {
-            delete appData[currentUser][formatDateKey(selectedDateForModal)];
-            saveToStorage();
-            closeModal();
-            showToast("Entry deleted.");
-        }
-
-        function saveToStorage() {
-            localStorage.setItem('familyTimeTracker', JSON.stringify(appData));
-            renderCalendar();
-            renderUsersList();
-        }
-
-        function exportData() {
+        window.exportData = () => {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
             const dl = document.createElement('a');
             dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", "family_backup_" + new Date().toISOString().slice(0,10) + ".json");
+            dl.setAttribute("download", `family_backup_${new Date().toISOString().slice(0,10)}.json`);
             dl.click();
-        }
+        };
 
-        function importData(input) {
+        window.importData = (input) => {
             const file = input.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (e) => {
-                appData = JSON.parse(e.target.result);
-                saveToStorage();
-                showToast("Restored!");
+            reader.onload = async (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    for (const user in imported) {
+                        for (const date in imported[user]) {
+                            const entry = imported[user][date];
+                            const docId = `${user}_${date}`;
+                            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'workLogs', docId);
+                            await setDoc(docRef, entry);
+                        }
+                    }
+                } catch (err) { console.error("Import failed", err); }
             };
             reader.readAsText(file);
-        }
+        };
 
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            document.getElementById('toastMessage').innerText = msg;
-            t.classList.remove('translate-y-20', 'opacity-0');
-            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000);
-        }
-
-        function formatDateKey(date) {
-            const offset = date.getTimezoneOffset();
-            const d = new Date(date.getTime() - (offset*60*1000));
-            return d.toISOString().split('T')[0];
-        }
-
-        function updateTodayDisplay() {
-            document.getElementById('todayDateDisplay').innerText = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        }
-
-        window.addEventListener('DOMContentLoaded', init);
+        start();
     </script>
 </body>
 </html>
