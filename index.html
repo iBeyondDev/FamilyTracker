@@ -12,11 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js" type="module"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js" type="module"></script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f172a;
-            color: #f1f5f9;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f1f5f9; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
         .calendar-day { min-height: 100px; transition: all 0.2s; position: relative; }
         .calendar-day:hover:not(.empty) { background-color: #1e293b; border-color: #475569; z-index: 10; }
@@ -58,21 +54,11 @@
                     <div class="w-2 h-2 rounded-full bg-yellow-500" id="statusDot"></div>
                     <span id="statusText">Connecting...</span>
                 </div>
-                <div class="flex border border-slate-600 rounded-md overflow-hidden">
-                    <button onclick="exportData()" title="Backup to File" class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 transition">
-                        <i class="fa-solid fa-download"></i>
-                    </button>
-                    <label class="bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1.5 transition cursor-pointer border-l border-slate-600">
-                        <i class="fa-solid fa-upload"></i>
-                        <input type="file" id="importInput" class="hidden" accept=".json" onchange="importData(this)">
-                    </label>
-                </div>
             </div>
         </div>
     </header>
 
     <main class="flex-1 overflow-auto bg-slate-900 p-4 sm:p-6">
-        <!-- Calendar Page -->
         <div id="calendarPage" class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 space-y-6">
                 <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex justify-between items-center sticky top-0 z-10">
@@ -105,91 +91,36 @@
                         <i class="fa-solid fa-users text-slate-400"></i> Family Dashboard
                     </h3>
                     <div id="usersList" class="space-y-3 flex-1 overflow-y-auto no-scrollbar"></div>
-                    <div class="mt-6 pt-6 border-t border-slate-700">
-                         <h4 class="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Your Recent Logs</h4>
-                         <div id="recentEntries" class="space-y-2 text-sm"></div>
-                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Stats Page -->
         <div id="statsPage" class="max-w-7xl mx-auto hidden fade-in space-y-6">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <h2 class="text-2xl font-bold text-white" id="statsMonthTitle">Month Statistics</h2>
-                <div id="topContributorBox" class="bg-blue-600/20 border border-blue-500/50 px-4 py-2 rounded-xl flex items-center gap-3">
-                    <i class="fa-solid fa-crown text-yellow-400"></i>
-                    <div>
-                        <p class="text-[10px] uppercase font-bold text-blue-400 tracking-wider">Monthly Top</p>
-                        <p id="topContributorName" class="font-black text-white">-</p>
-                    </div>
-                </div>
-            </div>
-
+            <h2 class="text-2xl font-bold text-white" id="statsMonthTitle">Month Statistics</h2>
             <div id="personAvgGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
-            
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-bold text-slate-300">Daily Activity Graph</h3>
-                    <div class="flex gap-4 text-xs">
-                        <span class="flex items-center gap-1.5"><div class="w-3 h-3 bg-blue-500 rounded-full"></div> M</span>
-                        <span class="flex items-center gap-1.5"><div class="w-3 h-3 bg-purple-500 rounded-full"></div> F</span>
-                        <span class="flex items-center gap-1.5"><div class="w-3 h-3 bg-pink-500 rounded-full"></div> A</span>
-                        <span class="flex items-center gap-1.5"><div class="w-3 h-3 bg-emerald-500 rounded-full"></div> T</span>
-                    </div>
-                </div>
-                <div class="h-80 w-full">
-                    <canvas id="statsChart"></canvas>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                    <h3 class="font-bold mb-4 text-slate-400 uppercase text-xs tracking-widest" id="monthlySumTitle">Monthly Summary</h3>
-                    <div id="monthlyTotalsList" class="space-y-4"></div>
-                </div>
-                <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                    <h3 class="font-bold mb-4 text-slate-400 uppercase text-xs tracking-widest">Monthly Rank</h3>
-                    <div id="monthlyRankList" class="space-y-4"></div>
-                </div>
+                <canvas id="statsChart" class="h-80 w-full"></canvas>
             </div>
         </div>
 
-        <!-- Consistency Page -->
         <div id="consistencyPage" class="max-w-7xl mx-auto hidden fade-in space-y-6">
             <h2 class="text-2xl font-bold text-white">Consistency (≥ 2h)</h2>
             <div id="consistencyGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
         </div>
     </main>
 
-    <!-- Modal -->
-    <div id="logModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-300">
-        <div class="bg-slate-800 rounded-2xl w-full max-w-md mx-4 border border-slate-700 overflow-hidden">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center">
-                <h3 class="text-xl font-bold text-white">Log Hours for <span id="modalUserName" class="text-blue-400"></span></h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+    <div id="logModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-slate-800 rounded-2xl w-full max-w-md mx-4 border border-slate-700 p-6 space-y-5">
+            <div class="flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white">Log for <span id="modalUserName" class="text-blue-400"></span></h3>
+                <button onclick="closeModal()" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="p-6 space-y-5">
-                <div class="text-sm text-slate-400 font-medium" id="modalDateDisplay"></div>
-                
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Hours Worked</label>
-                    <div class="flex gap-2 mb-3">
-                        <button onclick="setHours(4)" class="flex-1 py-1.5 border border-slate-600 bg-slate-700 rounded-lg hover:bg-blue-600/20 text-sm">4h</button>
-                        <button onclick="setHours(8)" class="flex-1 py-1.5 border border-slate-600 bg-slate-700 rounded-lg hover:bg-blue-600/20 text-sm">8h</button>
-                        <button onclick="setHours(10)" class="flex-1 py-1.5 border border-slate-600 bg-slate-700 rounded-lg hover:bg-blue-600/20 text-sm">10h</button>
-                    </div>
-                    <input type="number" id="hoursInput" step="0.5" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Enter hours...">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Notes</label>
-                    <textarea id="notesInput" rows="2" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="What did you do today?"></textarea>
-                </div>
-            </div>
-            <div class="p-6 border-t border-slate-700 flex justify-end gap-3">
-                <button onclick="deleteEntry()" id="deleteBtn" class="px-4 py-2 text-red-400 hover:bg-red-900/20 rounded-lg font-medium hidden">Delete</button>
-                <button onclick="saveEntry()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium">Save Entry</button>
+            <div id="modalDateDisplay" class="text-sm text-slate-400"></div>
+            <input type="number" id="hoursInput" step="0.5" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white" placeholder="Hours...">
+            <textarea id="notesInput" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white" placeholder="Notes..."></textarea>
+            <div class="flex justify-end gap-3">
+                <button onclick="deleteEntry()" id="deleteBtn" class="px-4 py-2 text-red-400 hidden">Delete</button>
+                <button onclick="saveEntry()" class="px-6 py-2 bg-blue-600 text-white rounded-lg">Save</button>
             </div>
         </div>
     </div>
@@ -201,53 +132,64 @@
 
         const firebaseConfig = JSON.parse(__firebase_config);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'family-tracker-2026';
+        
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         const USERS = ['Mohammad', 'Fadwa', 'Alia', 'Tasneem'];
         const USER_COLORS = { 'Mohammad': 'bg-blue-500', 'Fadwa': 'bg-purple-500', 'Alia': 'bg-pink-500', 'Tasneem': 'bg-emerald-500' };
-        const CHART_COLORS = { 'Mohammad': '#3b82f6', 'Fadwa': '#a855f7', 'Alia': '#ec4899', 'Tasneem': '#10b981' };
         
         let appData = {}; 
         let currentUser = localStorage.getItem('selectedUserIdentity') || USERS[0];
         let currentDate = new Date();
         let selectedDateForModal = null;
-        let authUser = null;
         let statsChartInstance = null;
+        let authReady = false;
 
-        async function start() {
+        async function initAuth() {
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
-            } catch (err) {
-                document.getElementById('statusText').innerText = "Auth Error";
+            } catch (error) {
+                console.error("Auth initialization failed:", error);
             }
         }
 
         onAuthStateChanged(auth, (user) => {
-            authUser = user;
             if (user) {
+                authReady = true;
                 document.getElementById('statusText').innerText = "Synced";
                 document.getElementById('statusDot').classList.replace('bg-yellow-500', 'bg-green-500');
                 listenToData();
+            } else {
+                authReady = false;
+                document.getElementById('statusText').innerText = "Connecting...";
+                document.getElementById('statusDot').classList.replace('bg-green-500', 'bg-yellow-500');
             }
         });
 
         function listenToData() {
+            if (!authReady) return;
+            // Rule 1: Always use /artifacts/{appId}/public/data/{collectionName}
             const dataPath = collection(db, 'artifacts', appId, 'public', 'data', 'workLogs');
+            
             onSnapshot(dataPath, (snapshot) => {
+                // Reset local structure
                 USERS.forEach(u => appData[u] = {});
                 snapshot.forEach(doc => {
                     const [user, date] = doc.id.split('_');
-                    if (USERS.includes(user)) appData[user][date] = doc.data();
+                    if (USERS.includes(user)) {
+                        appData[user][date] = doc.data();
+                    }
                 });
                 renderUI();
-            }, (error) => {
-                console.error("Firestore Listen Error:", error);
+            }, (err) => {
+                console.error("Firestore Listen Error:", err);
+                document.getElementById('statusText').innerText = "Permission Error";
             });
         }
 
@@ -271,13 +213,10 @@
             renderUI();
         };
 
-        window.setHours = (h) => document.getElementById('hoursInput').value = h;
-
         function renderUI() {
             document.getElementById('loggedUserDisplay').innerText = currentUser;
             renderUsers();
             renderCalendar();
-            updateRecentActivity();
             if (!document.getElementById('statsPage').classList.contains('hidden')) renderStats();
             if (!document.getElementById('consistencyPage').classList.contains('hidden')) renderConsistency();
         }
@@ -297,19 +236,16 @@
                     .reduce((sum, [_, v]) => sum + v.hours, 0);
 
                 const isActive = user === currentUser;
-                const card = document.createElement('div');
-                card.className = `user-card p-4 rounded-xl cursor-pointer transition-all border-2 ${isActive ? 'active border-blue-500' : 'border-transparent bg-slate-800/40'}`;
-                card.onclick = () => selectUser(user);
-                card.innerHTML = `
+                const userItem = document.createElement('div');
+                userItem.className = `user-card p-4 rounded-xl cursor-pointer border-2 transition-all ${isActive ? 'active border-blue-500' : 'border-transparent bg-slate-800/40'}`;
+                userItem.onclick = () => selectUser(user);
+                userItem.innerHTML = `
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full ${USER_COLORS[user]} flex items-center justify-center font-bold text-xs text-white">${user[0]}</div>
-                            <span class="font-bold">${user}</span>
-                        </div>
+                        <span class="font-bold">${user}</span>
                         <span class="text-lg font-black">${total}h</span>
                     </div>
                 `;
-                container.appendChild(card);
+                container.appendChild(userItem);
             });
         }
 
@@ -318,39 +254,27 @@
             grid.innerHTML = '';
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
-            const monthName = new Intl.DateTimeFormat('en-US', {month:'long'}).format(currentDate);
-            document.getElementById('currentMonthDisplay').innerText = `${monthName} ${year}`;
+            document.getElementById('currentMonthDisplay').innerText = new Intl.DateTimeFormat('en-US', {month:'long', year:'numeric'}).format(currentDate);
 
             const daysInMonth = new Date(year, month + 1, 0).getDate();
             const startingDay = new Date(year, month, 1).getDay();
-            const todayKey = new Date().toISOString().split('T')[0];
 
             for (let i = 0; i < startingDay; i++) grid.appendChild(document.createElement('div'));
 
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const isToday = dateKey === todayKey;
                 const dayEl = document.createElement('div');
-                dayEl.className = `calendar-day rounded-lg p-2 cursor-pointer bg-slate-800 border ${isToday ? 'border-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.2)]' : 'border-slate-700'} flex flex-col justify-between`;
+                dayEl.className = `calendar-day rounded-lg p-2 cursor-pointer bg-slate-800 border border-slate-700 flex flex-col justify-between`;
                 
                 let bars = '';
                 USERS.forEach(u => {
                     const entry = appData[u]?.[dateKey];
                     if (entry) {
-                        bars += `
-                            <div class="h-5 w-full ${USER_COLORS[u]} rounded px-1.5 mb-0.5 opacity-90 flex items-center justify-between overflow-hidden">
-                                <span class="text-[9px] font-bold text-white uppercase">${u[0]}</span>
-                                <span class="text-[9px] font-bold text-white">${entry.hours}h</span>
-                            </div>`;
+                        bars += `<div class="h-3 w-full ${USER_COLORS[u]} rounded-sm mb-0.5 opacity-80" title="${u}: ${entry.hours}h"></div>`;
                     }
                 });
 
-                dayEl.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <span class="text-xs ${isToday ? 'text-blue-400 font-bold' : 'text-slate-500'}">${d}</span>
-                        ${isToday ? '<span class="text-[9px] bg-blue-600 text-white px-1 rounded font-bold uppercase tracking-tighter">Today</span>' : ''}
-                    </div>
-                    <div class="mt-auto space-y-0.5">${bars}</div>`;
+                dayEl.innerHTML = `<span class="text-xs text-slate-500">${d}</span><div class="mt-auto">${bars}</div>`;
                 dayEl.onclick = () => openLogModal(dateKey);
                 grid.appendChild(dayEl);
             }
@@ -365,27 +289,29 @@
             document.getElementById('notesInput').value = entry?.notes || '';
             document.getElementById('deleteBtn').classList.toggle('hidden', !entry);
             document.getElementById('logModal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('logModal').classList.remove('opacity-0'), 10);
         };
 
-        window.closeModal = () => {
-            document.getElementById('logModal').classList.add('opacity-0');
-            setTimeout(() => document.getElementById('logModal').classList.add('hidden'), 300);
-        };
+        window.closeModal = () => document.getElementById('logModal').classList.add('hidden');
 
         window.saveEntry = async () => {
-            if (!authUser) return;
+            if (!authReady) return;
             const hours = parseFloat(document.getElementById('hoursInput').value);
-            const notes = document.getElementById('notesInput').value;
             if (isNaN(hours)) return;
+            
+            // Unique docId per user+date to avoid indexing requirements
             const docId = `${currentUser}_${selectedDateForModal}`;
             const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'workLogs', docId);
-            await setDoc(docRef, { hours, notes, timestamp: Date.now() });
+            
+            await setDoc(docRef, { 
+                hours, 
+                notes: document.getElementById('notesInput').value, 
+                timestamp: Date.now() 
+            });
             closeModal();
         };
 
         window.deleteEntry = async () => {
-            if (!authUser) return;
+            if (!authReady) return;
             const docId = `${currentUser}_${selectedDateForModal}`;
             const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'workLogs', docId);
             await deleteDoc(docRef);
@@ -396,84 +322,39 @@
             const month = currentDate.getMonth();
             const year = currentDate.getFullYear();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const monthName = new Intl.DateTimeFormat('en-US', {month:'long'}).format(currentDate);
-            
-            document.getElementById('statsMonthTitle').innerText = `${monthName} Statistics`;
-            document.getElementById('monthlySumTitle').innerText = `${monthName} Totals`;
-            
             const avgGrid = document.getElementById('personAvgGrid');
-            const monthlyTotalsList = document.getElementById('monthlyTotalsList');
-            const monthlyRankList = document.getElementById('monthlyRankList');
-            
             avgGrid.innerHTML = '';
-            monthlyTotalsList.innerHTML = '';
-            monthlyRankList.innerHTML = '';
 
-            let monthlyTotals = [];
             let labels = Array.from({length: daysInMonth}, (_, i) => i + 1);
             let datasets = [];
 
             USERS.forEach(u => {
                 const logs = appData[u] || {};
-                
-                const monthlyLogs = Object.entries(logs).filter(([date]) => {
-                    const d = new Date(date);
-                    return d.getMonth() === month && d.getFullYear() === year;
-                });
-                const monthlyTotal = monthlyLogs.reduce((sum, [_, v]) => sum + v.hours, 0);
-                monthlyTotals.push({ user: u, total: monthlyTotal });
+                const monthlyTotal = Object.entries(logs)
+                    .filter(([d]) => new Date(d).getMonth() === month && new Date(d).getFullYear() === year)
+                    .reduce((s, [_, v]) => s + v.hours, 0);
 
                 avgGrid.innerHTML += `
                     <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                        <div class="text-xs font-bold text-slate-500 uppercase mb-1">${u} Avg</div>
-                        <div class="text-2xl font-black text-white">${(monthlyTotal / daysInMonth).toFixed(1)}h</div>
-                        <div class="text-[10px] text-slate-500 mt-1">${monthlyTotal}h total this month</div>
-                    </div>
-                `;
-
-                monthlyTotalsList.innerHTML += `
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full ${USER_COLORS[u]}"></div>
-                            <span class="text-sm font-medium">${u}</span>
-                        </div>
-                        <span class="font-black text-slate-200">${monthlyTotal}h</span>
+                        <div class="text-xs text-slate-500 uppercase">${u} Avg</div>
+                        <div class="text-xl font-bold">${(monthlyTotal / daysInMonth).toFixed(1)}h</div>
                     </div>
                 `;
 
                 let dailyData = Array(daysInMonth).fill(0);
-                monthlyLogs.forEach(([date, v]) => {
-                    const day = new Date(date).getDate();
-                    dailyData[day - 1] = v.hours;
+                Object.entries(logs).forEach(([date, v]) => {
+                    const d = new Date(date);
+                    if(d.getMonth() === month && d.getFullYear() === year) {
+                        dailyData[d.getDate()-1] = v.hours;
+                    }
                 });
 
-                datasets.push({
-                    label: u,
-                    data: dailyData,
-                    borderColor: CHART_COLORS[u],
-                    backgroundColor: CHART_COLORS[u] + '11',
-                    fill: true,
-                    tension: 0.4,
-                    pointRadius: 2
+                datasets.push({ 
+                    label: u, 
+                    data: dailyData, 
+                    borderColor: u === 'Mohammad' ? '#3b82f6' : u === 'Fadwa' ? '#a855f7' : u === 'Alia' ? '#ec4899' : '#10b981', 
+                    tension: 0.4 
                 });
-            });
-
-            const sortedMonthly = [...monthlyTotals].sort((a,b) => b.total - a.total);
-            const top = sortedMonthly[0];
-            document.getElementById('topContributorName').innerText = top.total > 0 ? `${top.user} (${top.total}h)` : "-";
-            
-            sortedMonthly.forEach((item, idx) => {
-                monthlyRankList.innerHTML += `
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium">#${idx+1} ${item.user}</span>
-                        <div class="flex items-center gap-3">
-                            <div class="w-32 h-2 bg-slate-900 rounded-full overflow-hidden">
-                                <div class="h-full ${USER_COLORS[item.user]}" style="width: ${(item.total / (top.total || 1)) * 100}%"></div>
-                            </div>
-                            <span class="text-xs font-bold">${item.total}h</span>
-                        </div>
-                    </div>
-                `;
             });
 
             const ctx = document.getElementById('statsChart').getContext('2d');
@@ -483,12 +364,11 @@
                 data: { labels, datasets },
                 options: { 
                     maintainAspectRatio: false, 
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: { legend: { display: false } }, 
+                    plugins: { legend: { labels: { color: '#94a3b8' } } },
                     scales: { 
-                        y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { color: '#64748b' } }, 
-                        x: { grid: { display: false }, ticks: { color: '#64748b' } } 
-                    } 
+                        y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+                        x: { ticks: { color: '#64748b' }, grid: { display: false } }
+                    }
                 }
             });
         }
@@ -510,7 +390,6 @@
                     const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                     const hrs = appData[user]?.[key]?.hours || 0;
                     const isOk = hrs >= 2;
-                    
                     if (isOk) {
                         consistentCount++;
                         currentStreak++;
@@ -527,78 +406,24 @@
                             <span class="font-bold text-white">${user}</span>
                             <div class="flex gap-4">
                                 <div class="text-right">
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Consist. Days</p>
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Days ≥2h</p>
                                     <p class="text-blue-400 font-black">${consistentCount}</p>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Longest Streak</p>
+                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Streak</p>
                                     <p class="text-orange-400 font-black">${longestStreak}d</p>
                                 </div>
                             </div>
                         </div>
                         <div class="flex flex-wrap gap-1">
-                            ${history.map((ok, i) => `<div class="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold ${ok ? USER_COLORS[user] : 'bg-slate-700/50 text-slate-600'}">${i+1}</div>`).join('')}
-                        </div>
-                        <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
-                             <span class="text-xs text-slate-400 font-medium">Monthly Consistency Score</span>
-                             <span class="text-sm font-bold text-slate-200">${Math.round(consistentCount/daysInMonth*100)}%</span>
+                            ${history.map((ok, i) => `<div class="w-6 h-6 rounded flex items-center justify-center text-[10px] ${ok ? USER_COLORS[user] : 'bg-slate-700/50'}">${i+1}</div>`).join('')}
                         </div>
                     </div>
                 `;
             });
         }
 
-        function updateRecentActivity() {
-            const container = document.getElementById('recentEntries');
-            container.innerHTML = '';
-            const logs = Object.entries(appData[currentUser] || {})
-                .sort((a,b) => b[1].timestamp - a[1].timestamp)
-                .slice(0, 3);
-
-            if (logs.length === 0) {
-                container.innerHTML = '<div class="text-slate-500 italic">No entries found.</div>';
-                return;
-            }
-
-            logs.forEach(([date, val]) => {
-                container.innerHTML += `
-                    <div class="bg-slate-900/50 p-2 rounded border border-slate-700/50 flex justify-between">
-                        <span>${date}</span>
-                        <span class="font-bold text-blue-400">${val.hours}h</span>
-                    </div>
-                `;
-            });
-        }
-
-        window.exportData = () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
-            const dl = document.createElement('a');
-            dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", `family_backup_${new Date().toISOString().slice(0,10)}.json`);
-            dl.click();
-        };
-
-        window.importData = (input) => {
-            const file = input.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    for (const user in imported) {
-                        for (const date in imported[user]) {
-                            const entry = imported[user][date];
-                            const docId = `${user}_${date}`;
-                            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'workLogs', docId);
-                            await setDoc(docRef, entry);
-                        }
-                    }
-                } catch (err) { console.error("Import failed", err); }
-            };
-            reader.readAsText(file);
-        };
-
-        start();
+        initAuth();
     </script>
 </body>
 </html>
