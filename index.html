@@ -473,12 +473,12 @@
             const avgGrid = document.getElementById('personAvgGrid');
             avgGrid.innerHTML = '';
             USERS.forEach(user => {
-                const avg = userLogDays[user] > 0 ? (userTotals[user] / userLogDays[user]).toFixed(1) : '0';
+                const avg = (userTotals[user] / daysInMonth).toFixed(1);
                 avgGrid.innerHTML += `
                     <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-xl border-l-4 ${user === 'Mohammad' ? 'border-l-blue-500' : (user === 'Fadwa' ? 'border-l-purple-500' : (user === 'Alia' ? 'border-l-pink-500' : 'border-l-emerald-500'))}">
-                        <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">${user}'s Average</h3>
+                        <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-2">${user}'s Daily Average</h3>
                         <div class="text-3xl font-bold text-white">${avg}h</div>
-                        <div class="text-[10px] text-slate-500 mt-1">Per active day (${userLogDays[user]} logged)</div>
+                        <div class="text-[10px] text-slate-500 mt-1">Across all ${daysInMonth} days</div>
                     </div>
                 `;
             });
