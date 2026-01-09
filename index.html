@@ -7,10 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js" type="module"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js" type="module"></script>
-    <script src="https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js" type="module"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f1f5f9; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
@@ -32,7 +28,7 @@
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="bg-blue-600 text-white p-2 rounded-lg shadow-lg">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <i class="fa-solid fa-house-user"></i>
                 </div>
                 <h1 class="text-xl font-bold text-slate-100">Family Tracker <span class="text-blue-500">2026</span></h1>
             </div>
@@ -54,11 +50,15 @@
                     <div class="w-2 h-2 rounded-full bg-yellow-500" id="statusDot"></div>
                     <span id="statusText">Connecting...</span>
                 </div>
+                <button onclick="exportData()" class="bg-slate-700 hover:bg-slate-600 text-slate-300 p-2 rounded-lg transition" title="Manual Backup">
+                    <i class="fa-solid fa-download"></i>
+                </button>
             </div>
         </div>
     </header>
 
     <main class="flex-1 overflow-auto bg-slate-900 p-4 sm:p-6">
+        <!-- Calendar View -->
         <div id="calendarPage" class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 space-y-6">
                 <div class="bg-slate-800 rounded-xl border border-slate-700 p-4 flex justify-between items-center sticky top-0 z-10">
@@ -79,48 +79,57 @@
                         <h3 class="font-semibold text-slate-200">Logged in as</h3>
                         <p class="text-sm text-blue-400 font-bold" id="loggedUserDisplay"></p>
                     </div>
-                    <button onclick="openLogModal(new Date().toISOString().split('T')[0])" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg shadow-lg font-medium border border-blue-500">
-                        Log Hours
+                    <button onclick="openLogModal(new Date().toISOString().split('T')[0])" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg shadow-lg font-medium">
+                        Quick Log Today
                     </button>
                 </div>
             </div>
 
             <div class="space-y-6">
                 <div class="bg-slate-800 rounded-xl border border-slate-700 p-6 flex flex-col h-full">
-                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-users text-slate-400"></i> Family Dashboard
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-slate-300">
+                        <i class="fa-solid fa-users"></i> Family Members
                     </h3>
                     <div id="usersList" class="space-y-3 flex-1 overflow-y-auto no-scrollbar"></div>
                 </div>
             </div>
         </div>
 
+        <!-- Stats View -->
         <div id="statsPage" class="max-w-7xl mx-auto hidden fade-in space-y-6">
-            <h2 class="text-2xl font-bold text-white" id="statsMonthTitle">Month Statistics</h2>
+            <h2 class="text-2xl font-bold text-white" id="statsMonthTitle">Monthly Overview</h2>
             <div id="personAvgGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
             <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
                 <canvas id="statsChart" class="h-80 w-full"></canvas>
             </div>
         </div>
 
+        <!-- Consistency View -->
         <div id="consistencyPage" class="max-w-7xl mx-auto hidden fade-in space-y-6">
-            <h2 class="text-2xl font-bold text-white">Consistency (≥ 2h)</h2>
+            <h2 class="text-2xl font-bold text-white">Consistency (Goal: ≥ 2h/day)</h2>
             <div id="consistencyGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
         </div>
     </main>
 
+    <!-- Modal -->
     <div id="logModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center">
         <div class="bg-slate-800 rounded-2xl w-full max-w-md mx-4 border border-slate-700 p-6 space-y-5">
             <div class="flex justify-between items-center">
-                <h3 class="text-xl font-bold text-white">Log for <span id="modalUserName" class="text-blue-400"></span></h3>
+                <h3 class="text-xl font-bold text-white">Entry for <span id="modalUserName" class="text-blue-400"></span></h3>
                 <button onclick="closeModal()" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div id="modalDateDisplay" class="text-sm text-slate-400"></div>
-            <input type="number" id="hoursInput" step="0.5" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white" placeholder="Hours...">
-            <textarea id="notesInput" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white" placeholder="Notes..."></textarea>
-            <div class="flex justify-end gap-3">
-                <button onclick="deleteEntry()" id="deleteBtn" class="px-4 py-2 text-red-400 hidden">Delete</button>
-                <button onclick="saveEntry()" class="px-6 py-2 bg-blue-600 text-white rounded-lg">Save</button>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Hours</label>
+                <input type="number" id="hoursInput" step="0.5" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:border-blue-500 outline-none" placeholder="e.g. 4.5">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Notes</label>
+                <textarea id="notesInput" rows="2" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-2 text-white focus:border-blue-500 outline-none" placeholder="What did you work on?"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-2">
+                <button onclick="deleteEntry()" id="deleteBtn" class="px-4 py-2 text-red-400 font-medium hover:bg-red-400/10 rounded-lg hidden">Delete</button>
+                <button onclick="saveEntry()" class="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition shadow-lg shadow-blue-900/20">Save Entry</button>
             </div>
         </div>
     </div>
@@ -130,13 +139,14 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Environment Variables
         const firebaseConfig = JSON.parse(__firebase_config);
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'family-tracker-2026';
-        
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // App State
         const USERS = ['Mohammad', 'Fadwa', 'Alia', 'Tasneem'];
         const USER_COLORS = { 'Mohammad': 'bg-blue-500', 'Fadwa': 'bg-purple-500', 'Alia': 'bg-pink-500', 'Tasneem': 'bg-emerald-500' };
         
@@ -145,53 +155,74 @@
         let currentDate = new Date();
         let selectedDateForModal = null;
         let statsChartInstance = null;
-        let authReady = false;
+        let isCloudConnected = false;
 
-        async function initAuth() {
+        // --- AUTH & SYNC LOGIC ---
+
+        async function startApp() {
+            // Load from LocalStorage first for instant UI
+            const local = localStorage.getItem(`offline_data_${appId}`);
+            if (local) {
+                appData = JSON.parse(local);
+                renderUI();
+            }
+
             try {
+                // RULE 3: Auth before Queries
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
                 } else {
                     await signInAnonymously(auth);
                 }
-            } catch (error) {
-                console.error("Auth initialization failed:", error);
+            } catch (e) {
+                console.warn("Cloud connection failed, staying in offline mode.");
+                updateStatus('Offline', 'bg-red-500');
             }
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    isCloudConnected = true;
+                    updateStatus('Synced', 'bg-green-500');
+                    setupListener();
+                }
+            });
         }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                authReady = true;
-                document.getElementById('statusText').innerText = "Synced";
-                document.getElementById('statusDot').classList.replace('bg-yellow-500', 'bg-green-500');
-                listenToData();
-            } else {
-                authReady = false;
-                document.getElementById('statusText').innerText = "Connecting...";
-                document.getElementById('statusDot').classList.replace('bg-green-500', 'bg-yellow-500');
-            }
-        });
+        function updateStatus(text, colorClass) {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            dot.className = `w-2 h-2 rounded-full ${colorClass}`;
+            txt.innerText = text;
+        }
 
-        function listenToData() {
-            if (!authReady) return;
-            // Rule 1: Always use /artifacts/{appId}/public/data/{collectionName}
-            const dataPath = collection(db, 'artifacts', appId, 'public', 'data', 'workLogs');
+        function setupListener() {
+            if (!auth.currentUser) return;
+
+            // RULE 1: Strict paths
+            const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'workLogs');
             
-            onSnapshot(dataPath, (snapshot) => {
-                // Reset local structure
-                USERS.forEach(u => appData[u] = {});
+            // Rule 2: Simple queries only
+            onSnapshot(colRef, (snapshot) => {
+                const newData = {};
+                USERS.forEach(u => newData[u] = {});
+                
                 snapshot.forEach(doc => {
                     const [user, date] = doc.id.split('_');
                     if (USERS.includes(user)) {
-                        appData[user][date] = doc.data();
+                        newData[user][date] = doc.data();
                     }
                 });
+
+                appData = newData;
+                localStorage.setItem(`offline_data_${appId}`, JSON.stringify(appData));
                 renderUI();
-            }, (err) => {
-                console.error("Firestore Listen Error:", err);
-                document.getElementById('statusText').innerText = "Permission Error";
+            }, (error) => {
+                console.error("Firestore error:", error);
+                updateStatus('Sync Error', 'bg-orange-500');
             });
         }
+
+        // --- UI RENDERING ---
 
         window.switchPage = (page) => {
             ['calendar', 'stats', 'consistency'].forEach(p => {
@@ -215,76 +246,77 @@
 
         function renderUI() {
             document.getElementById('loggedUserDisplay').innerText = currentUser;
-            renderUsers();
+            renderUsersList();
             renderCalendar();
             if (!document.getElementById('statsPage').classList.contains('hidden')) renderStats();
             if (!document.getElementById('consistencyPage').classList.contains('hidden')) renderConsistency();
         }
 
-        function renderUsers() {
+        function renderUsersList() {
             const container = document.getElementById('usersList');
             container.innerHTML = '';
-            const month = currentDate.getMonth();
-            const year = currentDate.getFullYear();
+            const m = currentDate.getMonth();
+            const y = currentDate.getFullYear();
             
             USERS.forEach(user => {
                 let total = Object.entries(appData[user] || {})
                     .filter(([date]) => {
                         const d = new Date(date);
-                        return d.getMonth() === month && d.getFullYear() === year;
+                        return d.getMonth() === m && d.getFullYear() === y;
                     })
                     .reduce((sum, [_, v]) => sum + v.hours, 0);
 
                 const isActive = user === currentUser;
-                const userItem = document.createElement('div');
-                userItem.className = `user-card p-4 rounded-xl cursor-pointer border-2 transition-all ${isActive ? 'active border-blue-500' : 'border-transparent bg-slate-800/40'}`;
-                userItem.onclick = () => selectUser(user);
-                userItem.innerHTML = `
+                const card = document.createElement('div');
+                card.className = `user-card p-4 rounded-xl cursor-pointer border-2 transition-all ${isActive ? 'active border-blue-500' : 'border-transparent bg-slate-800/40'}`;
+                card.onclick = () => selectUser(user);
+                card.innerHTML = `
                     <div class="flex items-center justify-between">
-                        <span class="font-bold">${user}</span>
-                        <span class="text-lg font-black">${total}h</span>
+                        <span class="font-bold text-slate-200">${user}</span>
+                        <span class="text-lg font-black text-blue-400">${total}h</span>
                     </div>
                 `;
-                container.appendChild(userItem);
+                container.appendChild(card);
             });
         }
 
         function renderCalendar() {
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
+            const y = currentDate.getFullYear();
+            const m = currentDate.getMonth();
             document.getElementById('currentMonthDisplay').innerText = new Intl.DateTimeFormat('en-US', {month:'long', year:'numeric'}).format(currentDate);
 
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const startingDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const startDay = new Date(y, m, 1).getDay();
 
-            for (let i = 0; i < startingDay; i++) grid.appendChild(document.createElement('div'));
+            for (let i = 0; i < startDay; i++) grid.appendChild(document.createElement('div'));
 
             for (let d = 1; d <= daysInMonth; d++) {
-                const dateKey = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const dayEl = document.createElement('div');
-                dayEl.className = `calendar-day rounded-lg p-2 cursor-pointer bg-slate-800 border border-slate-700 flex flex-col justify-between`;
+                const dateKey = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                const el = document.createElement('div');
+                el.className = `calendar-day rounded-lg p-2 cursor-pointer bg-slate-800 border border-slate-700 flex flex-col justify-between`;
                 
-                let bars = '';
+                let barHtml = '';
                 USERS.forEach(u => {
-                    const entry = appData[u]?.[dateKey];
-                    if (entry) {
-                        bars += `<div class="h-3 w-full ${USER_COLORS[u]} rounded-sm mb-0.5 opacity-80" title="${u}: ${entry.hours}h"></div>`;
+                    if (appData[u]?.[dateKey]) {
+                        barHtml += `<div class="h-2.5 w-full ${USER_COLORS[u]} rounded-sm mb-0.5" title="${u}"></div>`;
                     }
                 });
 
-                dayEl.innerHTML = `<span class="text-xs text-slate-500">${d}</span><div class="mt-auto">${bars}</div>`;
-                dayEl.onclick = () => openLogModal(dateKey);
-                grid.appendChild(dayEl);
+                el.innerHTML = `<span class="text-xs text-slate-500 font-bold">${d}</span><div class="mt-auto">${barHtml}</div>`;
+                el.onclick = () => openLogModal(dateKey);
+                grid.appendChild(el);
             }
         }
+
+        // --- ACTIONS ---
 
         window.openLogModal = (dateKey) => {
             selectedDateForModal = dateKey;
             const entry = appData[currentUser]?.[dateKey];
             document.getElementById('modalUserName').innerText = currentUser;
-            document.getElementById('modalDateDisplay').innerText = dateKey;
+            document.getElementById('modalDateDisplay').innerText = new Date(dateKey).toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
             document.getElementById('hoursInput').value = entry ? entry.hours : '';
             document.getElementById('notesInput').value = entry?.notes || '';
             document.getElementById('deleteBtn').classList.toggle('hidden', !entry);
@@ -294,66 +326,75 @@
         window.closeModal = () => document.getElementById('logModal').classList.add('hidden');
 
         window.saveEntry = async () => {
-            if (!authReady) return;
             const hours = parseFloat(document.getElementById('hoursInput').value);
             if (isNaN(hours)) return;
-            
-            // Unique docId per user+date to avoid indexing requirements
-            const docId = `${currentUser}_${selectedDateForModal}`;
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'workLogs', docId);
-            
-            await setDoc(docRef, { 
-                hours, 
-                notes: document.getElementById('notesInput').value, 
-                timestamp: Date.now() 
-            });
+            const notes = document.getElementById('notesInput').value;
+
+            // Update Locally immediately
+            if (!appData[currentUser]) appData[currentUser] = {};
+            appData[currentUser][selectedDateForModal] = { hours, notes };
+            localStorage.setItem(`offline_data_${appId}`, JSON.stringify(appData));
+            renderUI();
             closeModal();
+
+            // Sync to Cloud
+            if (isCloudConnected && auth.currentUser) {
+                const docId = `${currentUser}_${selectedDateForModal}`;
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'workLogs', docId);
+                await setDoc(docRef, { hours, notes, updated: Date.now() });
+            }
         };
 
         window.deleteEntry = async () => {
-            if (!authReady) return;
-            const docId = `${currentUser}_${selectedDateForModal}`;
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'workLogs', docId);
-            await deleteDoc(docRef);
+            delete appData[currentUser][selectedDateForModal];
+            localStorage.setItem(`offline_data_${appId}`, JSON.stringify(appData));
+            renderUI();
             closeModal();
+
+            if (isCloudConnected && auth.currentUser) {
+                const docId = `${currentUser}_${selectedDateForModal}`;
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'workLogs', docId);
+                await deleteDoc(docRef);
+            }
         };
 
+        // --- STATS ---
+
         function renderStats() {
-            const month = currentDate.getMonth();
-            const year = currentDate.getFullYear();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const m = currentDate.getMonth();
+            const y = currentDate.getFullYear();
+            const daysCount = new Date(y, m + 1, 0).getDate();
             const avgGrid = document.getElementById('personAvgGrid');
             avgGrid.innerHTML = '';
 
-            let labels = Array.from({length: daysInMonth}, (_, i) => i + 1);
+            let labels = Array.from({length: daysCount}, (_, i) => i + 1);
             let datasets = [];
 
             USERS.forEach(u => {
                 const logs = appData[u] || {};
-                const monthlyTotal = Object.entries(logs)
-                    .filter(([d]) => new Date(d).getMonth() === month && new Date(d).getFullYear() === year)
-                    .reduce((s, [_, v]) => s + v.hours, 0);
+                const mLogs = Object.entries(logs).filter(([d]) => new Date(d).getMonth() === m && new Date(d).getFullYear() === y);
+                const total = mLogs.reduce((s, [_, v]) => s + v.hours, 0);
 
                 avgGrid.innerHTML += `
                     <div class="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                        <div class="text-xs text-slate-500 uppercase">${u} Avg</div>
-                        <div class="text-xl font-bold">${(monthlyTotal / daysInMonth).toFixed(1)}h</div>
+                        <div class="text-[10px] text-slate-500 uppercase font-black mb-1">${u}</div>
+                        <div class="flex items-baseline gap-1">
+                            <span class="text-2xl font-bold text-white">${total}</span>
+                            <span class="text-xs text-slate-400">total hrs</span>
+                        </div>
                     </div>
                 `;
 
-                let dailyData = Array(daysInMonth).fill(0);
-                Object.entries(logs).forEach(([date, v]) => {
-                    const d = new Date(date);
-                    if(d.getMonth() === month && d.getFullYear() === year) {
-                        dailyData[d.getDate()-1] = v.hours;
-                    }
-                });
+                let plotData = Array(daysCount).fill(0);
+                mLogs.forEach(([date, v]) => plotData[new Date(date).getDate()-1] = v.hours);
 
                 datasets.push({ 
                     label: u, 
-                    data: dailyData, 
-                    borderColor: u === 'Mohammad' ? '#3b82f6' : u === 'Fadwa' ? '#a855f7' : u === 'Alia' ? '#ec4899' : '#10b981', 
-                    tension: 0.4 
+                    data: plotData, 
+                    borderColor: u === 'Mohammad' ? '#3b82f6' : u === 'Fadwa' ? '#a855f7' : u === 'Alia' ? '#ec4899' : '#10b981',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    pointRadius: 2
                 });
             });
 
@@ -364,9 +405,9 @@
                 data: { labels, datasets },
                 options: { 
                     maintainAspectRatio: false, 
-                    plugins: { legend: { labels: { color: '#94a3b8' } } },
+                    plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } } },
                     scales: { 
-                        y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+                        y: { beginAtZero: true, ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
                         x: { ticks: { color: '#64748b' }, grid: { display: false } }
                     }
                 }
@@ -376,54 +417,53 @@
         function renderConsistency() {
             const grid = document.getElementById('consistencyGrid');
             grid.innerHTML = '';
-            const month = currentDate.getMonth();
-            const year = currentDate.getFullYear();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const m = currentDate.getMonth();
+            const y = currentDate.getFullYear();
+            const daysCount = new Date(y, m + 1, 0).getDate();
 
             USERS.forEach(user => {
-                let consistentCount = 0;
-                let longestStreak = 0;
-                let currentStreak = 0;
-                let history = [];
+                let streak = 0;
+                let maxStreak = 0;
+                let daysTargetMet = 0;
+                let track = [];
 
-                for (let d = 1; d <= daysInMonth; d++) {
-                    const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                    const hrs = appData[user]?.[key]?.hours || 0;
-                    const isOk = hrs >= 2;
-                    if (isOk) {
-                        consistentCount++;
-                        currentStreak++;
-                        if (currentStreak > longestStreak) longestStreak = currentStreak;
-                    } else {
-                        currentStreak = 0;
-                    }
-                    history.push(isOk);
+                for (let d = 1; d <= daysCount; d++) {
+                    const key = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const h = appData[user]?.[key]?.hours || 0;
+                    const ok = h >= 2;
+                    if (ok) { daysTargetMet++; streak++; if (streak > maxStreak) maxStreak = streak; } else { streak = 0; }
+                    track.push(ok);
                 }
 
                 grid.innerHTML += `
                     <div class="bg-slate-800 p-6 rounded-2xl border border-slate-700">
-                        <div class="flex justify-between items-center mb-4">
-                            <span class="font-bold text-white">${user}</span>
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h4 class="font-bold text-lg">${user}</h4>
+                                <p class="text-xs text-slate-500">Target: 2h/day</p>
+                            </div>
                             <div class="flex gap-4">
-                                <div class="text-right">
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Days ≥2h</p>
-                                    <p class="text-blue-400 font-black">${consistentCount}</p>
-                                </div>
-                                <div class="text-right">
-                                    <p class="text-[10px] text-slate-500 uppercase font-bold">Streak</p>
-                                    <p class="text-orange-400 font-black">${longestStreak}d</p>
-                                </div>
+                                <div class="text-center"><p class="text-[10px] text-slate-500 font-bold">DAYS</p><p class="text-blue-400 font-black">${daysTargetMet}</p></div>
+                                <div class="text-center"><p class="text-[10px] text-slate-500 font-bold">STREAK</p><p class="text-orange-400 font-black">${maxStreak}d</p></div>
                             </div>
                         </div>
-                        <div class="flex flex-wrap gap-1">
-                            ${history.map((ok, i) => `<div class="w-6 h-6 rounded flex items-center justify-center text-[10px] ${ok ? USER_COLORS[user] : 'bg-slate-700/50'}">${i+1}</div>`).join('')}
+                        <div class="grid grid-cols-7 sm:grid-cols-10 gap-1.5">
+                            ${track.map((ok, i) => `<div class="aspect-square rounded flex items-center justify-center text-[10px] font-bold ${ok ? USER_COLORS[user] + ' text-white' : 'bg-slate-700/30 text-slate-600'}">${i+1}</div>`).join('')}
                         </div>
                     </div>
                 `;
             });
         }
 
-        initAuth();
+        window.exportData = () => {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData));
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", `family_tracker_backup_${new Date().toISOString().slice(0,10)}.json`);
+            dl.click();
+        };
+
+        startApp();
     </script>
 </body>
 </html>
