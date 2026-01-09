@@ -423,7 +423,7 @@
                         const barWidth = Math.min(100, (entry.hours / 10) * 100);
                         const isSelected = user === window.currentUser;
                         indicatorsHtml += `
-                            <div class="${DOT_COLORS[user]} ${isSelected ? 'ring-1 ring-white shadow-sm' : 'opacity-80'} text-white text-[9px] px-1.5 py-0.5 rounded flex justify-between items-center mb-0.5" style="width: ${Math.max(25, barWidth)}%">
+                            <div class="${DOT_COLORS[user]} ${isSelected ? '' : 'opacity-80'} text-white text-[9px] px-1.5 py-0.5 rounded flex justify-between items-center mb-0.5" style="width: ${Math.max(25, barWidth)}%">
                                 <span>${user.charAt(0)}</span><span>${entry.hours}h</span>
                             </div>`;
                     }
